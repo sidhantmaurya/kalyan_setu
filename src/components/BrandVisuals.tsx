@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import heroThaliImg from '../assets/images/hero_thali_meal_1791364182432.jpg';
+import founderPortraitImg from '../assets/images/founder_portrait_1791364196333.jpg';
+import communityDiningImg from '../assets/images/community_dining_1791364207685.jpg';
 
-export const HERO_IMAGE_PATH = '/src/assets/images/hero_thali_meal_1791364182432.jpg';
-export const FOUNDER_IMAGE_PATH = '/src/assets/images/founder_portrait_1791364196333.jpg';
-export const COMMUNITY_IMAGE_PATH = '/src/assets/images/community_dining_1791364207685.jpg';
+export const HERO_IMAGE_PATH = heroThaliImg;
+export const FOUNDER_IMAGE_PATH = founderPortraitImg;
+export const COMMUNITY_IMAGE_PATH = communityDiningImg;
 
 export function KalyanSetuLogo({
   variant = 'navy',

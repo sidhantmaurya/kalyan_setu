@@ -325,15 +325,20 @@ export async function submitContactMessageToFirestore(input: {
   reason: string;
   message: string;
 }): Promise<string> {
+  const activeUid = input.userId || auth.currentUser?.uid;
+  if (!activeUid || !auth.currentUser) {
+    throw new Error('Authentication is required to submit the contact form.');
+  }
+
   const msgCollection = collection(db, 'contact_messages');
   const newDocRef = doc(msgCollection);
   const path = `contact_messages/${newDocRef.id}`;
 
   const nowIso = new Date().toISOString();
   const payload = {
-    userId: input.userId || 'guest',
+    userId: activeUid,
     fullName: input.fullName.trim().slice(0, 100),
-    email: input.email.trim().slice(0, 160),
+    email: (auth.currentUser.email || input.email).trim().slice(0, 160),
     phone: input.phone.trim().slice(0, 20),
     reason: input.reason,
     message: input.message.trim().slice(0, 5000),
@@ -354,7 +359,7 @@ export async function submitContactMessageToFirestore(input: {
   // Record contact_form submission in unified /activity_logs collection
   await recordActivityLog({
     eventType: 'contact_form',
-    userId: input.userId || 'guest',
+    userId: activeUid,
     email: payload.email,
     fullName: payload.fullName,
     details: `[${payload.reason}] ${payload.message.slice(0, 180)}`,

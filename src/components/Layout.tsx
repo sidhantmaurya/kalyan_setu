@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Menu,
@@ -25,23 +25,101 @@ const NAV_ITEMS = [
   { label: 'Contact', to: '/contact' },
 ];
 
+type HeaderSurfaceTheme = 'cream' | 'cream-dark' | 'navy';
+
+function detectSectionTheme(el: Element): HeaderSurfaceTheme | null {
+  const explicit = el.getAttribute('data-header-theme') as HeaderSurfaceTheme | null;
+  if (explicit === 'navy' || explicit === 'cream' || explicit === 'cream-dark') {
+    return explicit;
+  }
+
+  const cls = typeof el.className === 'string' ? el.className : '';
+  if (
+    cls.includes('bg-navy-luxury') ||
+    cls.includes('bg-[#1A2A4A]') ||
+    cls.includes('bg-[#111C33]')
+  ) {
+    return 'navy';
+  }
+  if (cls.includes('bg-[#EDE4CC]')) {
+    return 'cream-dark';
+  }
+  if (cls.includes('bg-cream-luxury') || cls.includes('bg-[#F5EFE0]')) {
+    return 'cream';
+  }
+
+  const bg = window.getComputedStyle(el).backgroundColor;
+  if (bg === 'rgb(26, 42, 74)' || bg === 'rgb(17, 28, 51)') {
+    return 'navy';
+  }
+  if (bg === 'rgb(237, 228, 204)') {
+    return 'cream-dark';
+  }
+  if (bg === 'rgb(245, 239, 224)') {
+    return 'cream';
+  }
+
+  return null;
+}
+
 export function Navbar() {
   const { user, profile, signOutUser, openLoginModal } = useAuth();
   const [scrolled, setScrolled] = useState(false);
+  const [surfaceTheme, setSurfaceTheme] = useState<HeaderSurfaceTheme>('cream');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const onScroll = () => {
-      setScrolled(window.scrollY > 40);
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+  const updateHeaderThemeOnScroll = useCallback(() => {
+    const scrollY = window.scrollY;
+    setScrolled(scrollY > 24);
+
+    const headerHeight = headerRef.current?.offsetHeight || 76;
+    const probeY = Math.min(window.innerHeight - 10, Math.max(headerHeight + 6, 40));
+
+    // Inspect all semantic sections and footer to find which block currently sits under the navbar
+    const candidates = Array.from(
+      document.querySelectorAll('main section, main > div > section, footer')
+    );
+
+    for (const section of candidates) {
+      const rect = section.getBoundingClientRect();
+      if (rect.top <= probeY && rect.bottom >= probeY) {
+        const detected = detectSectionTheme(section);
+        if (detected) {
+          setSurfaceTheme(detected);
+          return;
+        }
+      }
+    }
+
+    // Fallback: check elementsFromPoint at the horizontal center right below the header
+    const hitElements = document.elementsFromPoint(window.innerWidth / 2, probeY);
+    for (const el of hitElements) {
+      if (headerRef.current && headerRef.current.contains(el)) continue;
+      const detected = detectSectionTheme(el);
+      if (detected) {
+        setSurfaceTheme(detected);
+        return;
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    updateHeaderThemeOnScroll();
+    // Run again after paint in case route content just mounted
+    const timer = window.setTimeout(updateHeaderThemeOnScroll, 60);
+    window.addEventListener('scroll', updateHeaderThemeOnScroll, { passive: true });
+    window.addEventListener('resize', updateHeaderThemeOnScroll, { passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('scroll', updateHeaderThemeOnScroll);
+      window.removeEventListener('resize', updateHeaderThemeOnScroll);
+    };
+  }, [location.pathname, updateHeaderThemeOnScroll]);
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -91,6 +169,25 @@ export function Navbar() {
     (profile?.fullName || user?.displayName || profile?.email || 'Member').split(' ')[0];
   const avatarUrl = profile?.avatarUrl || user?.photoURL || '';
   const isAdmin = profile?.role === 'admin';
+  const isNavy = surfaceTheme === 'navy';
+  const isCreamDark = surfaceTheme === 'cream-dark';
+
+  // Dynamic surface classes that align seamlessly with the active webpage section
+  const headerSurfaceClasses = isNavy
+    ? scrolled
+      ? 'bg-[#1A2A4A]/95 text-white border-b border-[#C9A227]/70 shadow-luxury py-3'
+      : 'bg-[#1A2A4A] text-white border-b border-[#C9A227]/35 py-4'
+    : isCreamDark
+      ? scrolled
+        ? 'bg-[#EDE4CC]/95 text-[#1A2A4A] border-b border-[#C9A227] shadow-luxury py-3'
+        : 'bg-[#EDE4CC] text-[#1A2A4A] border-b border-[#C9A227]/45 py-4'
+      : scrolled
+        ? 'bg-[#F5EFE0]/95 text-[#1A2A4A] border-b border-[#C9A227] shadow-luxury py-3'
+        : 'bg-[#F5EFE0] text-[#1A2A4A] border-b border-[#C9A227]/35 py-4';
+
+  const topRibbonClasses = isNavy
+    ? 'bg-[#111C33] text-white/90 border-b border-[#C9A227]/35'
+    : 'bg-[#1A2A4A] text-white/90 border-b border-[#C9A227]/40';
 
   return (
     <>
@@ -101,9 +198,9 @@ export function Navbar() {
         Skip to main content
       </a>
 
-      {/* Top Editorial Ribbon */}
-      <div className="bg-[#1A2A4A] text-white/90 border-b border-[#C9A227]/40 text-xs py-2 px-4 sm:px-6">
-        <div className="max-w-[1200px] mx-auto flex flex-wrap items-center justify-between gap-2">
+      {/* Top Editorial Ribbon — Aligned to max-w-[1200px] */}
+      <div className={`${topRibbonClasses} text-xs py-2 transition-colors duration-300`}>
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5 text-[#C9A227] shrink-0" />
             <span className="font-medium tracking-wide">
@@ -126,30 +223,34 @@ export function Navbar() {
       </div>
 
       <header
-        className={`sticky top-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? 'bg-[#F5EFE0]/95 backdrop-blur-md border-b border-[#C9A227] shadow-luxury py-3'
-            : 'bg-[#F5EFE0]/90 backdrop-blur-sm border-b border-[#C9A227]/30 py-4'
-        }`}
+        ref={headerRef}
+        className={`sticky top-0 z-50 backdrop-blur-md transition-all duration-300 ${headerSurfaceClasses}`}
       >
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 flex items-center justify-between gap-4">
-          {/* Zone 1: Brand Wordmark */}
-          <Link to="/" className="shrink-0 group" aria-label="KalyanSetu Home">
-            <KalyanSetuLogo variant="navy" size="md" />
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 flex items-center justify-between gap-6">
+          {/* Zone 1: Brand Wordmark — switches between white & navy automatically */}
+          <Link to="/" className="shrink-0 flex items-center" aria-label="KalyanSetu Home">
+            <KalyanSetuLogo variant={isNavy ? 'white' : 'navy'} size="md" />
           </Link>
 
-          {/* Zone 2: Center Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-7" aria-label="Primary Navigation">
+          {/* Zone 2: Center Navigation Links — perfectly centered and color-adaptive */}
+          <nav
+            className="hidden lg:flex items-center justify-center gap-7 flex-1"
+            aria-label="Primary Navigation"
+          >
             {NAV_ITEMS.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.to === '/'}
                 className={({ isActive }) =>
-                  `relative py-1.5 text-[15px] tracking-wide text-[#1A2A4A] whitespace-nowrap transition-colors hover:text-[#C9A227] after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-[2px] after:bg-[#C9A227] after:transition-all after:duration-200 ${
-                    isActive
-                      ? 'after:w-full font-bold text-[#1A2A4A]'
-                      : 'after:w-0 font-medium hover:after:w-full'
+                  `relative py-1.5 text-[15px] tracking-wide whitespace-nowrap transition-colors duration-200 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-[2px] after:bg-[#C9A227] after:transition-all after:duration-200 ${
+                    isNavy
+                      ? isActive
+                        ? 'after:w-full font-bold text-[#E8C96A]'
+                        : 'after:w-0 font-medium text-white/90 hover:text-[#E8C96A] hover:after:w-full'
+                      : isActive
+                        ? 'after:w-full font-bold text-[#1A2A4A]'
+                        : 'after:w-0 font-medium text-[#1A2A4A] hover:text-[#C9A227] hover:after:w-full'
                   }`
                 }
               >
@@ -158,13 +259,17 @@ export function Navbar() {
             ))}
           </nav>
 
-          {/* Zone 3: Primary Actions */}
-          <div className="hidden lg:flex items-center gap-3 shrink-0">
+          {/* Zone 3: Primary Actions — aligned right and color-adaptive */}
+          <div className="hidden lg:flex items-center justify-end gap-3 shrink-0">
             {!user ? (
               <button
                 type="button"
                 onClick={openLoginModal}
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-[#1A2A4A] border-2 border-[#1A2A4A] rounded-lg hover:bg-[#1A2A4A] hover:text-white transition-all whitespace-nowrap cursor-pointer"
+                className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg border-2 transition-all whitespace-nowrap cursor-pointer ${
+                  isNavy
+                    ? 'border-[#E8C96A] text-[#E8C96A] hover:bg-[#E8C96A] hover:text-[#1A2A4A]'
+                    : 'border-[#1A2A4A] text-[#1A2A4A] hover:bg-[#1A2A4A] hover:text-white'
+                }`}
               >
                 <LogIn className="w-4 h-4 text-[#C9A227]" />
                 <span>Sign in</span>
@@ -176,17 +281,25 @@ export function Navbar() {
                   onClick={() => setDropdownOpen((prev) => !prev)}
                   aria-haspopup="menu"
                   aria-expanded={dropdownOpen}
-                  className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg border-2 border-[#C9A227] bg-[#F5EFE0] text-[#1A2A4A] hover:bg-[#EDE4CC] transition-colors whitespace-nowrap shadow-xs cursor-pointer"
+                  className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg border-2 border-[#C9A227] transition-colors whitespace-nowrap shadow-xs cursor-pointer ${
+                    isNavy
+                      ? 'bg-white/10 text-white hover:bg-white/20'
+                      : 'bg-[#F5EFE0] text-[#1A2A4A] hover:bg-[#EDE4CC]'
+                  }`}
                 >
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
                       alt={firstName}
                       referrerPolicy="no-referrer"
-                      className="w-8 h-8 rounded-full object-cover border border-[#1A2A4A]"
+                      className="w-8 h-8 rounded-full object-cover border border-[#C9A227]"
                     />
                   ) : (
-                    <span className="w-8 h-8 rounded-full bg-[#1A2A4A] text-[#E8C96A] text-xs font-bold flex items-center justify-center">
+                    <span
+                      className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center ${
+                        isNavy ? 'bg-[#C9A227] text-[#1A2A4A]' : 'bg-[#1A2A4A] text-[#E8C96A]'
+                      }`}
+                    >
                       {firstName.charAt(0).toUpperCase()}
                     </span>
                   )}
@@ -198,14 +311,16 @@ export function Navbar() {
                       {isAdmin ? 'Admin' : 'Member'}
                     </span>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-[#1A2A4A]" />
+                  <ChevronDown
+                    className={`w-4 h-4 ${isNavy ? 'text-[#E8C96A]' : 'text-[#1A2A4A]'}`}
+                  />
                 </button>
 
                 {dropdownOpen && (
                   <div
                     role="menu"
                     aria-label="User account menu"
-                    className="absolute right-0 mt-2 w-56 bg-[#F5EFE0] border-2 border-[#C9A227] rounded-xl shadow-luxury py-2 z-50"
+                    className="absolute right-0 mt-2 w-56 bg-[#F5EFE0] text-[#1A2A4A] border-2 border-[#C9A227] rounded-xl shadow-luxury py-2 z-50"
                   >
                     <div className="px-4 py-2 border-b border-[#C9A227]/30 mb-1">
                       <p className="text-xs font-bold text-[#1A2A4A] truncate">
@@ -262,7 +377,11 @@ export function Navbar() {
             onClick={() => setMobileMenuOpen(true)}
             aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}
-            className="lg:hidden p-2 text-[#1A2A4A] hover:text-[#C9A227] rounded-lg border border-[#C9A227]/40"
+            className={`lg:hidden p-2 rounded-lg border transition-colors ${
+              isNavy
+                ? 'text-white border-[#C9A227]/60 hover:text-[#E8C96A]'
+                : 'text-[#1A2A4A] border-[#C9A227]/50 hover:text-[#C9A227]'
+            }`}
           >
             <Menu className="w-6 h-6" />
           </button>
@@ -394,7 +513,10 @@ export function Footer() {
   };
 
   return (
-    <footer className="bg-navy-luxury text-white pt-16 pb-10 border-t-2 border-[#C9A227]">
+    <footer
+      data-header-theme="navy"
+      className="bg-navy-luxury text-white pt-16 pb-10 border-t-2 border-[#C9A227]"
+    >
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 pb-12">
           {/* Column 1 — Brand (5 cols) */}

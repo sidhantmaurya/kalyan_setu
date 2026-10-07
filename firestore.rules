@@ -197,14 +197,13 @@ service cloud.firestore {
 
       allow create: if isValidId(messageId) && isValidContactMessage(incoming()) && (
         (
+          isVerifiedUser() &&
+          incoming().userId == request.auth.uid &&
+          incoming().email == request.auth.token.email &&
           incoming().status == 'new' &&
           incoming().adminNotes == '' &&
           incoming().createdAt == request.time &&
-          incoming().updatedAt == request.time &&
-          (
-            (isVerifiedUser() && incoming().userId == request.auth.uid) ||
-            (!isSignedIn() && incoming().userId == 'guest')
-          )
+          incoming().updatedAt == request.time
         ) || isAdmin()
       );
 
@@ -254,24 +253,22 @@ service cloud.firestore {
 
       allow create: if isValidId(logId) && isValidActivityLog(incoming()) && (
         incoming().createdAt == request.time && (
-          // Auth lifecycle events (signup, signin, login, logout) require verified user matching uid/email
+          // Auth lifecycle & contact_form events (signup, signin, login, logout, contact_form) require verified user matching uid/email
           (
             (
               incoming().eventType == 'signup' ||
               incoming().eventType == 'signin' ||
               incoming().eventType == 'login' ||
-              incoming().eventType == 'logout'
+              incoming().eventType == 'logout' ||
+              incoming().eventType == 'contact_form'
             ) &&
             isVerifiedUser() &&
             incoming().userId == request.auth.uid &&
             incoming().email == request.auth.token.email
           ) ||
-          // Subscriber & contact_form events allow either verified user or guest
+          // Subscriber events allow either verified user or guest
           (
-            (
-              incoming().eventType == 'subscriber' ||
-              incoming().eventType == 'contact_form'
-            ) &&
+            incoming().eventType == 'subscriber' &&
             (
               (isVerifiedUser() && incoming().userId == request.auth.uid) ||
               (!isSignedIn() && incoming().userId == 'guest')

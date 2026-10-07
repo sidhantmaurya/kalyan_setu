@@ -65,7 +65,7 @@ function detectSectionTheme(el: Element): HeaderSurfaceTheme | null {
 export function Navbar() {
   const { user, profile, signOutUser, openLoginModal } = useAuth();
   const [scrolled, setScrolled] = useState(false);
-  const [surfaceTheme, setSurfaceTheme] = useState<HeaderSurfaceTheme>('cream');
+  const [surfaceTheme, setSurfaceTheme] = useState<HeaderSurfaceTheme>('navy');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -75,7 +75,14 @@ export function Navbar() {
 
   const updateHeaderThemeOnScroll = useCallback(() => {
     const scrollY = window.scrollY;
-    setScrolled(scrollY > 24);
+    const isScrolledDown = scrollY > 40;
+    setScrolled(isScrolledDown);
+
+    // Keep the header Navy Blue initially at the top of every page
+    if (!isScrolledDown) {
+      setSurfaceTheme('navy');
+      return;
+    }
 
     const headerHeight = headerRef.current?.offsetHeight || 76;
     const probeY = Math.min(window.innerHeight - 10, Math.max(headerHeight + 6, 40));

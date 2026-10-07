@@ -1,0 +1,6 @@
+{
+  "name": "KalyanSetu — Serving Nourishment, Building Connection",
+  "description": "KalyanSetu is a for-profit social impact company making nourishing, affordable food accessible to students, workers, drivers, and low-income families across India.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

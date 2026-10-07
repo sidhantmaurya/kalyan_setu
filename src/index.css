@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-navy: #1A2A4A;
+    --color-navy-deep: #111C33;
+    --color-gold: #C9A227;
+    --color-gold-light: #E8C96A;
+    --color-cream: #F5EFE0;
+    --color-cream-dark: #EDE4CC;
+    --color-white: #FFFFFF;
+    --color-text-body: #3D3520;
+    --color-text-muted: #7A6A50;
+    --color-footer-bg: #1A2A4A;
+    --color-border-gold: #C9A227;
+  }
+
+  ::selection {
+    background-color: rgba(201, 162, 39, 0.28);
+    color: #1A2A4A;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    background-color: var(--color-cream);
+    color: var(--color-text-body);
+    font-family: 'Lato', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-text-body);
+    line-height: 1.75;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(rgba(201, 162, 39, 0.06) 1px, transparent 0),
+      radial-gradient(rgba(26, 42, 74, 0.025) 1px, transparent 0);
+    background-size: 32px 32px;
+    background-position: 0 0, 16px 16px;
+  }
+
+  h1, h2, h3, h4, .font-serif-heading {
+    font-family: 'Playfair Display', Georgia, serif;
+    text-wrap: balance;
+    letter-spacing: -0.015em;
+  }
+
+  .font-garamond {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+
+  .font-body {
+    font-family: 'Lato', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  *:focus-visible {
+    outline: 2px solid #C9A227;
+    outline-offset: 2px;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Luxury Editorial Accents */
+.shadow-luxury {
+  box-shadow:
+    0 20px 45px -15px rgba(26, 42, 74, 0.14),
+    0 4px 16px -4px rgba(201, 162, 39, 0.12);
+}
+
+.shadow-luxury-lg {
+  box-shadow:
+    0 28px 65px -15px rgba(26, 42, 74, 0.25),
+    0 8px 24px -6px rgba(201, 162, 39, 0.18);
+}
+
+.bg-navy-luxury {
+  background: radial-gradient(circle at 80% 15%, rgba(201, 162, 39, 0.14) 0%, transparent 45%),
+              radial-gradient(circle at 15% 85%, rgba(232, 201, 106, 0.08) 0%, transparent 40%),
+              linear-gradient(180deg, #1A2A4A 0%, #132039 100%);
+}
+
+.bg-cream-luxury {
+  background: radial-gradient(circle at 85% 10%, rgba(201, 162, 39, 0.09) 0%, transparent 45%),
+              linear-gradient(180deg, #F5EFE0 0%, #F2E9D5 100%);
+}
+
+@keyframes modalPopIn {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-modal-pop {
+  animation: modalPopIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

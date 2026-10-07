@@ -1,0 +1,305 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================================
+    // Global Hardened Primitives
+    // =========================================================================
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerifiedUser() && request.auth.uid == userId;
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'sidhantmaurya140@gmail.com' ||
+        request.auth.token.email == 'divyansh@kalyansetu.in'
+      );
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() || (
+        isVerifiedUser() && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.size() >= 3 && email.size() <= 160 && email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
+    }
+
+    // =========================================================================
+    // Validation Blueprints
+    // =========================================================================
+
+    function isValidProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'fullName', 'avatarUrl', 'phone', 'role', 'createdAt', 'lastLoginAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'fullName', 'avatarUrl', 'phone', 'role', 'createdAt', 'lastLoginAt']) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        isValidEmail(data.email) &&
+        data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
+        data.avatarUrl is string && data.avatarUrl.size() <= 500 &&
+        data.phone is string && data.phone.size() <= 20 &&
+        (data.role == 'user' || data.role == 'admin') &&
+        data.createdAt is timestamp &&
+        data.lastLoginAt is timestamp;
+    }
+
+    function isValidContactMessage(data) {
+      return data.keys().hasAll([
+        'userId', 'fullName', 'email', 'phone', 'reason', 'message',
+        'status', 'adminNotes', 'createdAt', 'updatedAt', 'notifiedAt', 'notificationError'
+      ]) &&
+      data.keys().hasOnly([
+        'userId', 'fullName', 'email', 'phone', 'reason', 'message',
+        'status', 'adminNotes', 'createdAt', 'updatedAt', 'notifiedAt', 'notificationError'
+      ]) &&
+      data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 100 &&
+      isValidEmail(data.email) &&
+      data.phone is string && data.phone.size() <= 20 &&
+      (
+        data.reason == 'General Inquiry' ||
+        data.reason == 'Partner With Us' ||
+        data.reason == 'Investor' ||
+        data.reason == 'Volunteer' ||
+        data.reason == 'Collaborate' ||
+        data.reason == 'Media' ||
+        data.reason == 'Just Saying Hi'
+      ) &&
+      data.message is string && data.message.size() >= 10 && data.message.size() <= 5000 &&
+      (
+        data.status == 'new' ||
+        data.status == 'read' ||
+        data.status == 'replied' ||
+        data.status == 'archived'
+      ) &&
+      data.adminNotes is string && data.adminNotes.size() <= 2000 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp &&
+      data.notifiedAt is string && data.notifiedAt.size() <= 64 &&
+      data.notificationError is string && data.notificationError.size() <= 300;
+    }
+
+    function isValidNewsletterSubscriber(data) {
+      return data.keys().hasAll(['email', 'createdAt']) &&
+        data.keys().hasOnly(['email', 'createdAt']) &&
+        isValidEmail(data.email) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidActivityLog(data) {
+      return data.keys().hasAll(['eventType', 'userId', 'email', 'fullName', 'details', 'createdAt']) &&
+        data.keys().hasOnly(['eventType', 'userId', 'email', 'fullName', 'details', 'createdAt']) &&
+        (
+          data.eventType == 'signup' ||
+          data.eventType == 'signin' ||
+          data.eventType == 'login' ||
+          data.eventType == 'logout' ||
+          data.eventType == 'subscriber' ||
+          data.eventType == 'contact_form'
+        ) &&
+        data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        isValidEmail(data.email) &&
+        data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
+        data.details is string && data.details.size() >= 1 && data.details.size() <= 1000 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidAdminMarker(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'createdAt']) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        isValidEmail(data.email) &&
+        data.createdAt is timestamp;
+    }
+
+    // =========================================================================
+    // Collection Rules: /profiles/{userId}
+    // =========================================================================
+
+    match /profiles/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isValidId(userId) && isValidProfile(incoming()) && (
+        (
+          isOwner(userId) &&
+          incoming().uid == request.auth.uid &&
+          incoming().email == request.auth.token.email &&
+          incoming().createdAt == request.time &&
+          incoming().lastLoginAt == request.time &&
+          (incoming().role == 'user' || (isBootstrappedAdmin() && incoming().role == 'admin'))
+        ) || isAdmin()
+      );
+
+      allow update: if isValidId(userId) && isValidProfile(incoming()) && (
+        // Action 1: Owner updates own profile metadata (phone, fullName, avatarUrl, lastLoginAt)
+        (
+          isOwner(userId) &&
+          incoming().uid == existing().uid &&
+          incoming().email == existing().email &&
+          incoming().role == existing().role &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().lastLoginAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['phone', 'fullName', 'avatarUrl', 'lastLoginAt'])
+        ) ||
+        // Action 2: Admin updates another user's role (cannot demote self)
+        (
+          isAdmin() &&
+          incoming().uid == existing().uid &&
+          incoming().email == existing().email &&
+          incoming().createdAt == existing().createdAt &&
+          (userId != request.auth.uid || incoming().role == 'admin') &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['role', 'phone', 'fullName', 'avatarUrl', 'lastLoginAt'])
+        )
+      );
+
+      allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());
+    }
+
+    // =========================================================================
+    // Collection Rules: /contact_messages/{messageId}
+    // =========================================================================
+
+    match /contact_messages/{messageId} {
+      allow get: if isValidId(messageId) && (
+        (isVerifiedUser() && existing().userId == request.auth.uid) ||
+        isAdmin()
+      );
+
+      allow list: if (isVerifiedUser() && existing().userId == request.auth.uid) || isAdmin();
+
+      allow create: if isValidId(messageId) && isValidContactMessage(incoming()) && (
+        (
+          incoming().status == 'new' &&
+          incoming().adminNotes == '' &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          (
+            (isVerifiedUser() && incoming().userId == request.auth.uid) ||
+            (!isSignedIn() && incoming().userId == 'guest')
+          )
+        ) || isAdmin()
+      );
+
+      allow update: if isVerifiedUser() && isValidId(messageId) && isValidContactMessage(incoming()) && (
+        isAdmin() &&
+        incoming().userId == existing().userId &&
+        incoming().fullName == existing().fullName &&
+        incoming().email == existing().email &&
+        incoming().phone == existing().phone &&
+        incoming().reason == existing().reason &&
+        incoming().message == existing().message &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'adminNotes', 'notifiedAt', 'notificationError', 'updatedAt'])
+      );
+
+      allow delete: if isValidId(messageId) && isAdmin();
+    }
+
+    // =========================================================================
+    // Collection Rules: /newsletter_subscribers/{subscriberId}
+    // =========================================================================
+
+    match /newsletter_subscribers/{subscriberId} {
+      allow get: if isValidId(subscriberId) && isAdmin();
+      allow list: if isAdmin();
+
+      allow create: if isValidId(subscriberId) && isValidNewsletterSubscriber(incoming()) && (
+        incoming().createdAt == request.time || isAdmin()
+      );
+
+      allow update: if false;
+      allow delete: if isValidId(subscriberId) && isAdmin();
+    }
+
+    // =========================================================================
+    // Collection Rules: /activity_logs/{logId}
+    // =========================================================================
+
+    match /activity_logs/{logId} {
+      allow get: if isValidId(logId) && (
+        (isVerifiedUser() && existing().userId == request.auth.uid) ||
+        isAdmin()
+      );
+
+      allow list: if (isVerifiedUser() && existing().userId == request.auth.uid) || isAdmin();
+
+      allow create: if isValidId(logId) && isValidActivityLog(incoming()) && (
+        incoming().createdAt == request.time && (
+          // Auth lifecycle events (signup, signin, login, logout) require verified user matching uid/email
+          (
+            (
+              incoming().eventType == 'signup' ||
+              incoming().eventType == 'signin' ||
+              incoming().eventType == 'login' ||
+              incoming().eventType == 'logout'
+            ) &&
+            isVerifiedUser() &&
+            incoming().userId == request.auth.uid &&
+            incoming().email == request.auth.token.email
+          ) ||
+          // Subscriber & contact_form events allow either verified user or guest
+          (
+            (
+              incoming().eventType == 'subscriber' ||
+              incoming().eventType == 'contact_form'
+            ) &&
+            (
+              (isVerifiedUser() && incoming().userId == request.auth.uid) ||
+              (!isSignedIn() && incoming().userId == 'guest')
+            )
+          ) ||
+          isAdmin()
+        )
+      );
+
+      allow update: if false;
+      allow delete: if isValidId(logId) && isAdmin();
+    }
+
+    // =========================================================================
+    // Collection Rules: /admins/{adminUid}
+    // =========================================================================
+
+    match /admins/{adminUid} {
+      allow get: if isValidId(adminUid) && (isOwner(adminUid) || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isValidId(adminUid) && isValidAdminMarker(incoming()) && (
+        (isBootstrappedAdmin() && incoming().uid == adminUid && incoming().createdAt == request.time) ||
+        (isAdmin() && incoming().uid == adminUid && incoming().createdAt == request.time)
+      );
+
+      allow update: if false;
+      allow delete: if isValidId(adminUid) && isAdmin() && adminUid != request.auth.uid;
+    }
+  }
+}

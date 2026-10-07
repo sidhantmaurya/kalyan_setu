@@ -1,0 +1,263 @@
+{
+  "entities": {
+    "Profile": {
+      "title": "Profile",
+      "description": "User profile created and synced upon Google Sign-In.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Google account email address",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "fullName": {
+          "type": "string",
+          "description": "User display name from Google",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "Profile photo URL from Google",
+          "maxLength": 500
+        },
+        "phone": {
+          "type": "string",
+          "description": "Optional user phone number",
+          "maxLength": 20
+        },
+        "role": {
+          "type": "string",
+          "description": "Access role (user or admin)",
+          "enum": ["user", "admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account registration server timestamp"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Most recent sign-in server timestamp"
+        }
+      },
+      "required": ["uid", "email", "fullName", "avatarUrl", "phone", "role", "createdAt", "lastLoginAt"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Contact form submission stored in Firestore and emailed to admins.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID of signed-in sender, or 'guest' if submitted by visitor",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full name of the sender",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Email address of the sender",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "phone": {
+          "type": "string",
+          "description": "Optional phone number (empty string if omitted)",
+          "maxLength": 20
+        },
+        "reason": {
+          "type": "string",
+          "description": "Reason for contacting KalyanSetu",
+          "enum": [
+            "General Inquiry",
+            "Partner With Us",
+            "Investor",
+            "Volunteer",
+            "Collaborate",
+            "Media",
+            "Just Saying Hi"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "description": "Inquiry message body",
+          "minLength": 10,
+          "maxLength": 5000
+        },
+        "status": {
+          "type": "string",
+          "description": "Review status managed by admins",
+          "enum": ["new", "read", "replied", "archived"]
+        },
+        "adminNotes": {
+          "type": "string",
+          "description": "Internal admin notes (empty string initially)",
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Submission server timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last modification server timestamp"
+        },
+        "notifiedAt": {
+          "type": "string",
+          "description": "ISO timestamp when admin email was sent (empty string if pending)",
+          "maxLength": 64
+        },
+        "notificationError": {
+          "type": "string",
+          "description": "Last email error message if any (empty string if none)",
+          "maxLength": 300
+        }
+      },
+      "required": [
+        "userId",
+        "fullName",
+        "email",
+        "phone",
+        "reason",
+        "message",
+        "status",
+        "adminNotes",
+        "createdAt",
+        "updatedAt",
+        "notifiedAt",
+        "notificationError"
+      ]
+    },
+    "NewsletterSubscriber": {
+      "title": "NewsletterSubscriber",
+      "description": "Email subscriber from the website footer.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Subscriber email address",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Subscription server timestamp"
+        }
+      },
+      "required": ["email", "createdAt"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "Unified audit log storing signup, signin, login, logout, subscriber, and contact_form events.",
+      "type": "object",
+      "properties": {
+        "eventType": {
+          "type": "string",
+          "description": "Type of event recorded",
+          "enum": ["signup", "signin", "login", "logout", "subscriber", "contact_form"]
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the user or 'guest' for anonymous visitor actions",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Email associated with the event",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Display name or visitor name",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "details": {
+          "type": "string",
+          "description": "Human-readable summary of the event (e.g. reason, message snippet, auth action)",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the event"
+        }
+      },
+      "required": ["eventType", "userId", "email", "fullName", "details", "createdAt"]
+    },
+    "AdminMarker": {
+      "title": "AdminMarker",
+      "description": "Trusted admin lookup document keyed by user UID.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Admin user UID",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Admin user email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when promoted to admin"
+        }
+      },
+      "required": ["uid", "email", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/profiles/{userId}": {
+      "schema": { "$ref": "#/entities/Profile" },
+      "description": "User profiles keyed by Firebase Auth UID."
+    },
+    "/contact_messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ContactMessage" },
+      "description": "Contact form messages submitted by visitors and signed-in users."
+    },
+    "/newsletter_subscribers/{subscriberId}": {
+      "schema": { "$ref": "#/entities/NewsletterSubscriber" },
+      "description": "Newsletter subscription records."
+    },
+    "/activity_logs/{logId}": {
+      "schema": { "$ref": "#/entities/ActivityLog" },
+      "description": "Unified activity table storing signup, signin, login, logout, subscriber, and contact_form events."
+    },
+    "/admins/{adminUid}": {
+      "schema": { "$ref": "#/entities/AdminMarker" },
+      "description": "Trusted admin role registry for RBAC lookups."
+    }
+  }
+}

@@ -485,17 +485,37 @@ export function ContactPage() {
                 showUniversity={true}
                 quote='"Every conversation gets my personal attention."'
               />
-              <div className="mt-6 pt-6 border-t border-[#C9A227]/30 text-sm text-[#7A6A50] space-y-2">
+              <div className="mt-6 pt-6 border-t border-[#C9A227]/30 text-sm text-[#7A6A50] space-y-3">
                 <p>
                   Direct Email:{' '}
                   <a
-                    href="mailto:hello@kalyansetu.in"
+                    href="mailto:rdivyansh088@gmail.com"
                     className="font-bold text-[#1A2A4A] underline underline-offset-4 hover:text-[#C9A227]"
                   >
-                    hello@kalyansetu.in
+                    rdivyansh088@gmail.com
                   </a>
                 </p>
-                <p>NIC Code: 56100 · Restaurants &amp; Mobile Food Service Activities</p>
+                <div className="flex items-center justify-center gap-3 pt-1">
+                  <a
+                    href="https://in.linkedin.com/in/divyansh-rai-76907236a"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 rounded-lg bg-[#1A2A4A] text-[#E8C96A] hover:bg-[#C9A227] hover:text-white text-xs font-bold uppercase tracking-wider transition-colors"
+                  >
+                    LinkedIn
+                  </a>
+                  <a
+                    href="https://www.instagram.com/builtbydivyanshh?stkn=ZGhucHkzanRsMGZv"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 rounded-lg border border-[#1A2A4A] text-[#1A2A4A] hover:bg-[#1A2A4A] hover:text-white text-xs font-bold uppercase tracking-wider transition-colors"
+                  >
+                    Instagram
+                  </a>
+                </div>
+                <p className="text-xs pt-1">
+                  NIC Code: 56100 · Restaurants &amp; Mobile Food Service Activities
+                </p>
               </div>
             </div>
           </div>

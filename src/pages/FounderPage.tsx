@@ -27,10 +27,35 @@ export function FounderPage() {
             />
           </div>
 
-          <p className="font-garamond italic text-xl sm:text-[22px] text-[#C9A227] max-w-2xl leading-relaxed font-semibold">
+          <p className="font-garamond italic text-xl sm:text-[22px] text-[#C9A227] max-w-2xl leading-relaxed font-semibold mb-6">
             &ldquo;Food can do more than just fill your stomach. It can build healthier lives,
             stronger communities and a kinder tomorrow.&rdquo;
           </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+            <a
+              href="mailto:rdivyansh088@gmail.com"
+              className="px-4 py-2 rounded-lg bg-[#EDE4CC] border border-[#C9A227] text-[#1A2A4A] font-bold hover:bg-[#C9A227] hover:text-white transition-colors"
+            >
+              rdivyansh088@gmail.com
+            </a>
+            <a
+              href="https://in.linkedin.com/in/divyansh-rai-76907236a"
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2 rounded-lg bg-[#1A2A4A] text-[#E8C96A] font-bold hover:bg-[#C9A227] hover:text-white transition-colors"
+            >
+              LinkedIn Profile
+            </a>
+            <a
+              href="https://www.instagram.com/builtbydivyanshh?stkn=ZGhucHkzanRsMGZv"
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2 rounded-lg border-2 border-[#1A2A4A] text-[#1A2A4A] font-bold hover:bg-[#1A2A4A] hover:text-white transition-colors"
+            >
+              Instagram (@builtbydivyanshh)
+            </a>
+          </div>
         </div>
       </section>
 

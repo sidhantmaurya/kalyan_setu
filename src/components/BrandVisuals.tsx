@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
 import heroThaliImg from '../assets/images/hero_thali_meal_1791364182432.jpg';
-import founderPortraitImg from '../assets/images/founder_portrait_1791364196333.jpg';
+import founderPortraitImg from '../assets/images/WhatsApp Image 2026-10-07 at 10.39.47 PM.jpeg';
+import companyLogoImg from '../assets/images/kalyansetu_company_logo_1791394342748.jpg';
 import communityDiningImg from '../assets/images/community_dining_1791364207685.jpg';
 
 export const HERO_IMAGE_PATH = heroThaliImg;
 export const FOUNDER_IMAGE_PATH = founderPortraitImg;
+export const COMPANY_LOGO_PATH = companyLogoImg;
 export const COMMUNITY_IMAGE_PATH = communityDiningImg;
+
+export const FOUNDER_EMAIL = 'rdivyansh088@gmail.com';
+export const FOUNDER_LINKEDIN_URL = 'https://in.linkedin.com/in/divyansh-rai-76907236a';
+export const FOUNDER_INSTAGRAM_URL =
+  'https://www.instagram.com/builtbydivyanshh?stkn=ZGhucHkzanRsMGZv';
 
 export function KalyanSetuLogo({
   variant = 'navy',
@@ -14,8 +21,9 @@ export function KalyanSetuLogo({
   variant?: 'navy' | 'white';
   size?: 'sm' | 'md' | 'lg';
 }) {
+  const [imgFailed, setImgFailed] = useState(false);
   const textColor = variant === 'white' ? '#FFFFFF' : '#1A2A4A';
-  const iconDimensions = size === 'sm' ? 28 : size === 'lg' ? 40 : 34;
+  const iconDimensions = size === 'sm' ? 34 : size === 'lg' ? 48 : 40;
   const textClass =
     size === 'sm'
       ? 'text-lg'
@@ -25,40 +33,63 @@ export function KalyanSetuLogo({
 
   return (
     <span className="inline-flex items-center gap-2.5 select-none">
-      <svg
-        width={iconDimensions}
-        height={iconDimensions}
-        viewBox="0 0 48 48"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
-        <circle cx="24" cy="24" r="22" stroke="#C9A227" strokeWidth="2" />
-        {/* Bridge arch */}
-        <path
-          d="M8 31C12.5 23 18 19 24 19C30 19 35.5 23 40 31"
-          stroke="#C9A227"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
-        <path
-          d="M6 34H42"
-          stroke={variant === 'white' ? '#FFFFFF' : '#1A2A4A'}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        {/* Nourishing bowl & warm steam */}
-        <path
-          d="M16 25H32C32 29.4183 28.4183 33 24 33C19.5817 33 16 29.4183 16 25Z"
-          fill="#C9A227"
-        />
-        <path
-          d="M21 15C21 13 22.5 12 22.5 10M27 15C27 13 28.5 12 28.5 10"
-          stroke="#C9A227"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-      </svg>
+      {!imgFailed && COMPANY_LOGO_PATH ? (
+        <span
+          className="rounded-full overflow-hidden border border-[#C9A227] bg-[#F5EFE0] shrink-0 flex items-center justify-center shadow-2xs"
+          style={{ width: iconDimensions, height: iconDimensions }}
+        >
+          <img
+            src={COMPANY_LOGO_PATH}
+            alt="KalyanSetu Logo"
+            onError={() => setImgFailed(true)}
+            className="w-full h-full object-cover"
+          />
+        </span>
+      ) : (
+        <svg
+          width={iconDimensions}
+          height={iconDimensions}
+          viewBox="0 0 64 64"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+          className="rounded-full bg-[#F5EFE0] border border-[#C9A227] p-1 shrink-0"
+        >
+          {/* Rising golden sun arch */}
+          <path
+            d="M20 29C20 22.3726 25.3726 17 32 17C38.6274 17 44 22.3726 44 29"
+            stroke="#B58318"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+          {/* Sun rays */}
+          <path
+            d="M32 8V13M24 10L26 14.5M17 15L20.5 18.5M12 22L16.5 24M40 10L38 14.5M47 15L43.5 18.5M52 22L47.5 24"
+            stroke="#B58318"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+          />
+          {/* Center golden leaf */}
+          <path
+            d="M32 21C36 25 36 32 32 37C28 32 28 25 32 21Z"
+            fill="#B58318"
+          />
+          {/* Left & Right Navy Leaves */}
+          <path
+            d="M14 31C22 31 28 35 30 43C21 44 15 39 14 31Z"
+            fill="#0A3363"
+          />
+          <path
+            d="M50 30C42 30 36 34 34 42C43 43 49 38 50 30Z"
+            fill="#0A3363"
+          />
+          {/* Cradling Navy Hand */}
+          <path
+            d="M16 44C22 52 40 54 48 42C42 41 36 44 31 47C26 48 20 47 16 44Z"
+            fill="#0A3363"
+          />
+        </svg>
+      )}
       <span
         className={`font-serif-heading font-bold tracking-tight ${textClass}`}
         style={{ color: textColor }}

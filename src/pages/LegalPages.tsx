@@ -83,7 +83,7 @@ export function PrivacyPage() {
               <Link to="/contact" className="text-[#1A2A4A] font-bold underline">
                 Contact page
               </Link>{' '}
-              or emailing <strong>hello@kalyansetu.in</strong>.
+              or emailing <strong>rdivyansh088@gmail.com</strong>.
             </p>
           </div>
         </div>

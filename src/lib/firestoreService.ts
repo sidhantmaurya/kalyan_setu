@@ -69,6 +69,7 @@ export interface FirestoreActivityLog {
 
 const BOOTSTRAPPED_ADMIN_EMAILS = new Set([
   'sidhantmaurya140@gmail.com',
+  'rdivyansh088@gmail.com',
   'divyansh@kalyansetu.in',
 ]);
 

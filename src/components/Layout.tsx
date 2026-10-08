@@ -593,20 +593,20 @@ export function Footer() {
             <p className="text-white/75 text-xs mt-0.5">Central University of Kerala</p>
             <p className="text-white/85 text-[15px] mt-2">
               <a
-                href="mailto:hello@kalyansetu.in"
+                href="mailto:rdivyansh088@gmail.com"
                 className="hover:text-[#E8C96A] underline underline-offset-4 transition-colors"
               >
-                hello@kalyansetu.in
+                rdivyansh088@gmail.com
               </a>
             </p>
 
             {/* Social Icons */}
             <div className="flex items-center gap-4 mt-4">
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/builtbydivyanshh?stkn=ZGhucHkzanRsMGZv"
                 target="_blank"
                 rel="noreferrer"
-                aria-label="KalyanSetu on Instagram"
+                aria-label="Divyansh Rai / KalyanSetu on Instagram"
                 className="w-9 h-9 rounded-full bg-white/5 border border-[#C9A227]/40 flex items-center justify-center text-[#C9A227] hover:bg-[#C9A227] hover:text-[#1A2A4A] transition-all"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
@@ -616,27 +616,16 @@ export function Footer() {
                 </svg>
               </a>
               <a
-                href="https://linkedin.com"
+                href="https://in.linkedin.com/in/divyansh-rai-76907236a"
                 target="_blank"
                 rel="noreferrer"
-                aria-label="KalyanSetu on LinkedIn"
+                aria-label="Divyansh Rai on LinkedIn"
                 className="w-9 h-9 rounded-full bg-white/5 border border-[#C9A227]/40 flex items-center justify-center text-[#C9A227] hover:bg-[#C9A227] hover:text-[#1A2A4A] transition-all"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
                   <rect x="2" y="9" width="4" height="12" />
                   <circle cx="4" cy="4" r="2" />
-                </svg>
-              </a>
-              <a
-                href="https://x.com"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="KalyanSetu on X (Twitter)"
-                className="w-9 h-9 rounded-full bg-white/5 border border-[#C9A227]/40 flex items-center justify-center text-[#C9A227] hover:bg-[#C9A227] hover:text-[#1A2A4A] transition-all"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 4l16 16M20 4L4 20" />
                 </svg>
               </a>
             </div>

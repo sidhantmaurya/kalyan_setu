@@ -187,17 +187,33 @@ export async function syncUserProfileInFirestore(
   const avatarUrl = (firebaseUser.photoURL || '').slice(0, 500);
   const profilePath = `profiles/${uid}`;
   const profileRef = doc(db, 'profiles', uid);
-
-  let snap;
-  try {
-    snap = await getDoc(profileRef);
-  } catch (error) {
-    handleFirestoreError(error, OperationType.GET, profilePath);
-  }
-
   const isBootstrapAdmin = isBootstrappedAdminEmail(email);
 
-  if (!snap.exists()) {
+  // Resilient fallback profile if Firestore is offline
+  const fallbackProfile: FirestoreProfile = {
+    id: uid,
+    uid,
+    email,
+    fullName,
+    avatarUrl,
+    phone: '',
+    role: isBootstrapAdmin ? 'admin' : 'user',
+    createdAt: new Date().toISOString(),
+    lastLoginAt: new Date().toISOString(),
+  };
+
+  let snap: any = null;
+  try {
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Firestore profile fetch timeout')), 2500)
+    );
+    snap = (await Promise.race([getDoc(profileRef), timeoutPromise])) as any;
+  } catch (error: any) {
+    // If offline or slow network, return resilient local profile without hanging
+    return fallbackProfile;
+  }
+
+  if (!snap || !snap.exists()) {
     const initialRole: 'user' | 'admin' = isBootstrapAdmin ? 'admin' : 'user';
     const newProfilePayload = {
       uid,
@@ -213,7 +229,7 @@ export async function syncUserProfileInFirestore(
     try {
       await setDoc(profileRef, newProfilePayload);
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, profilePath);
+      console.warn('Could not persist new profile in Firestore (offline or pending sync):', error);
     }
 
     if (initialRole === 'admin') {
@@ -225,13 +241,13 @@ export async function syncUserProfileInFirestore(
           createdAt: serverTimestamp(),
         });
       } catch (error) {
-        handleFirestoreError(error, OperationType.CREATE, `admins/${uid}`);
+        console.warn('Could not persist admin document (offline):', error);
       }
-      await seedInitialFirestoreDataIfEmpty();
+      seedInitialFirestoreDataIfEmpty().catch(() => {});
     }
 
     // Record signup + initial signin in /activity_logs
-    await recordActivityLog({
+    recordActivityLog({
       eventType: 'signup',
       userId: uid,
       email,
@@ -239,7 +255,7 @@ export async function syncUserProfileInFirestore(
       details: `New account registered via Google (${initialRole.toUpperCase()} role)`,
     }).catch(() => {});
 
-    await recordActivityLog({
+    recordActivityLog({
       eventType: 'signin',
       userId: uid,
       email,
@@ -247,22 +263,28 @@ export async function syncUserProfileInFirestore(
       details: 'First Google sign-in session started',
     }).catch(() => {});
 
-    const createdSnap = await getDoc(profileRef);
-    return mapProfileDoc(uid, createdSnap.data() || newProfilePayload);
+    return {
+      ...fallbackProfile,
+      role: initialRole,
+    };
   } else {
     const existingData = snap.data();
+    const effectiveRole: 'user' | 'admin' =
+      existingData.role === 'admin' || isBootstrapAdmin ? 'admin' : 'user';
+
     try {
       await updateDoc(profileRef, {
         fullName: (firebaseUser.displayName || existingData.fullName || 'Member').slice(0, 100),
         avatarUrl: (firebaseUser.photoURL || existingData.avatarUrl || '').slice(0, 500),
+        role: effectiveRole,
         lastLoginAt: serverTimestamp(),
       });
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, profilePath);
+      console.warn('Could not update profile timestamp in Firestore (offline or pending):', error);
     }
 
     if (recordSignInEvent) {
-      await recordActivityLog({
+      recordActivityLog({
         eventType: 'signin',
         userId: uid,
         email,
@@ -271,12 +293,17 @@ export async function syncUserProfileInFirestore(
       }).catch(() => {});
     }
 
-    if (existingData.role === 'admin' || isBootstrapAdmin) {
-      await seedInitialFirestoreDataIfEmpty();
+    if (effectiveRole === 'admin') {
+      seedInitialFirestoreDataIfEmpty().catch(() => {});
     }
 
-    const updatedSnap = await getDoc(profileRef);
-    return mapProfileDoc(uid, updatedSnap.data() || existingData);
+    return mapProfileDoc(uid, {
+      ...existingData,
+      role: effectiveRole,
+      fullName,
+      avatarUrl,
+      lastLoginAt: new Date(),
+    });
   }
 }
 

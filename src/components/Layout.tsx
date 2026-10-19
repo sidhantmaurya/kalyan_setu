@@ -192,10 +192,6 @@ export function Navbar() {
         ? 'bg-[#F5EFE0]/95 text-[#1A2A4A] border-b border-[#C9A227] shadow-luxury py-3'
         : 'bg-[#F5EFE0] text-[#1A2A4A] border-b border-[#C9A227]/35 py-4';
 
-  const topRibbonClasses = isNavy
-    ? 'bg-[#111C33] text-white/90 border-b border-[#C9A227]/35'
-    : 'bg-[#1A2A4A] text-white/90 border-b border-[#C9A227]/40';
-
   return (
     <>
       <a
@@ -204,30 +200,6 @@ export function Navbar() {
       >
         Skip to main content
       </a>
-
-      {/* Top Editorial Ribbon — Aligned to max-w-[1200px] */}
-      <div className={`${topRibbonClasses} text-xs py-2 transition-colors duration-300`}>
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-[#C9A227] shrink-0" />
-            <span className="font-medium tracking-wide">
-              <strong className="text-[#E8C96A] uppercase tracking-wider">KalyanSetu:</strong>{' '}
-              Serving 1-Grade Nourishment with Dignity &amp; Affordability
-            </span>
-          </div>
-          <div className="hidden sm:flex items-center gap-4 text-[11px] uppercase tracking-[1.8px] text-[#E8C96A]">
-            <Link to="/progress" className="hover:text-white transition-colors">
-              Pilot Roadmap
-            </Link>
-            <span aria-hidden="true" className="text-white/30">
-              |
-            </span>
-            <Link to="/founder" className="hover:text-white transition-colors">
-              Founder: Divyansh Rai
-            </Link>
-          </div>
-        </div>
-      </div>
 
       <header
         ref={headerRef}
@@ -378,20 +350,73 @@ export function Navbar() {
             </button>
           </div>
 
-          {/* Mobile Hamburger Button */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            aria-label="Open navigation menu"
-            aria-expanded={mobileMenuOpen}
-            className={`lg:hidden p-2 rounded-lg border transition-colors ${
-              isNavy
-                ? 'text-white border-[#C9A227]/60 hover:text-[#E8C96A]'
-                : 'text-[#1A2A4A] border-[#C9A227]/50 hover:text-[#C9A227]'
-            }`}
-          >
-            <Menu className="w-6 h-6" />
-          </button>
+          {/* Mobile Right Action Area: Direct Sign In / Avatar + Hamburger */}
+          <div className="flex lg:hidden items-center gap-2">
+            {!user ? (
+              <button
+                type="button"
+                onClick={openLoginModal}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border-2 transition-all whitespace-nowrap cursor-pointer ${
+                  isNavy
+                    ? 'border-[#E8C96A] text-[#E8C96A] bg-[#E8C96A]/10 active:bg-[#E8C96A] active:text-[#1A2A4A]'
+                    : 'border-[#1A2A4A] text-[#1A2A4A] bg-[#1A2A4A]/5 active:bg-[#1A2A4A] active:text-white'
+                }`}
+              >
+                <LogIn className="w-3.5 h-3.5 text-[#C9A227]" />
+                <span>Sign in</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <Link
+                  to="/dashboard"
+                  aria-label="My Dashboard"
+                  title="My Dashboard"
+                  className="w-8 h-8 rounded-full border-2 border-[#C9A227] overflow-hidden flex items-center justify-center shrink-0"
+                >
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={firstName}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="w-full h-full bg-[#1A2A4A] text-[#E8C96A] text-xs font-bold flex items-center justify-center">
+                      {firstName.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  aria-label="Sign out"
+                  title="Sign out"
+                  className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
+                    isNavy
+                      ? 'border-red-400/60 text-red-300 hover:bg-red-900/40'
+                      : 'border-red-300 text-red-700 hover:bg-red-50'
+                  }`}
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline text-[11px]">Sign out</span>
+                </button>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open navigation menu"
+              aria-expanded={mobileMenuOpen}
+              className={`p-2 rounded-lg border transition-colors cursor-pointer ${
+                isNavy
+                  ? 'text-white border-[#C9A227]/60 hover:text-[#E8C96A]'
+                  : 'text-[#1A2A4A] border-[#C9A227]/50 hover:text-[#C9A227]'
+              }`}
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -466,9 +491,10 @@ export function Navbar() {
                   <button
                     type="button"
                     onClick={handleSignOut}
-                    className="py-2 text-left text-sm text-[#7A6A50] hover:text-[#1A2A4A]"
+                    className="w-full mt-2 py-2.5 px-3 flex items-center justify-center gap-2 rounded-lg bg-red-50 hover:bg-red-100 border border-red-300 text-red-700 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
                   >
-                    Sign out
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign out</span>
                   </button>
                 </div>
               )}

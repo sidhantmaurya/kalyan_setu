@@ -12,6 +12,7 @@ import {
   RefreshCw,
   ExternalLink,
   Eye,
+  LogOut,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CONTACT_REASONS } from '../data/kalyansetuData';
@@ -59,7 +60,7 @@ function downloadCsv(filename: string, headers: string[], rows: string[][]) {
 }
 
 export function AdminPanel() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, signOutUser } = useAuth();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -479,6 +480,25 @@ export function AdminPanel() {
             </NavLink>
           ))}
         </nav>
+
+        {/* Admin Sign Out & Account Footer */}
+        <div className="p-4 border-t border-[#C9A227]/30 mt-auto bg-[#111C33]/60">
+          <p className="text-[11px] text-[#E8C96A] font-bold truncate">
+            {profile?.fullName || user?.displayName || 'Admin'}
+          </p>
+          <p className="text-[10px] text-white/60 truncate mb-2">{user?.email}</p>
+          <button
+            type="button"
+            onClick={async () => {
+              await signOutUser();
+              window.location.href = '/';
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-md bg-red-900/40 hover:bg-red-800/60 border border-red-500/50 text-red-200 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign out</span>
+          </button>
+        </div>
       </aside>
 
       {/* Cream Content Area */}

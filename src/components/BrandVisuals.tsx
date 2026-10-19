@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import heroThaliImg from '../assets/images/hero_thali_meal_1791364182432.jpg';
-import founderPortraitImg from '../assets/images/WhatsApp Image 2026-10-07 at 10.39.47 PM.jpeg';
+import founderPortraitImg from '../assets/images/founder_portrait.jpeg';
 import companyLogoImg from '../assets/images/kalyansetu_company_logo_1791394342748.jpg';
 import communityDiningImg from '../assets/images/community_dining_1791364207685.jpg';
 

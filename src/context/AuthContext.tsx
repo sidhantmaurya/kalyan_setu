@@ -1,12 +1,20 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import {
+  User,
+  onAuthStateChanged,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  signOut,
+} from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { auth, db, googleAuthProvider, OperationType, handleFirestoreError } from '../lib/firebase';
+import { auth, db, googleAuthProvider } from '../lib/firebase';
 import {
   FirestoreProfile,
   syncUserProfileInFirestore,
   recordLogoutInFirestore,
   mapProfileDoc,
+  isBootstrappedAdminEmail,
 } from '../lib/firestoreService';
 
 export type UserProfile = FirestoreProfile;
@@ -32,20 +40,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [loginModalOpen, setLoginModalOpen] = useState<boolean>(true);
+  const [loginModalOpen, setLoginModalOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('kalyansetu_welcome_dismissed') !== 'true';
+    }
+    return true;
+  });
 
   const openLoginModal = useCallback(() => {
     setAuthError(null);
     setLoginModalOpen(true);
+    try {
+      sessionStorage.removeItem('kalyansetu_welcome_dismissed');
+    } catch {}
   }, []);
 
   const closeLoginModal = useCallback(() => {
     setAuthError(null);
     setLoginModalOpen(false);
+    try {
+      sessionStorage.setItem('kalyansetu_welcome_dismissed', 'true');
+    } catch {}
   }, []);
 
   useEffect(() => {
     let unsubProfile: (() => void) | null = null;
+
+    // Check if user is returning from a redirect-based sign-in flow (common on mobile)
+    getRedirectResult(auth)
+      .then(async (credential) => {
+        if (credential?.user) {
+          const synced = await syncUserProfileInFirestore(credential.user, true);
+          setProfile(synced);
+          setLoginModalOpen(false);
+        }
+      })
+      .catch((err) => {
+        if (err?.code !== 'auth/popup-closed-by-user') {
+          console.warn('Redirect sign-in notice:', err?.message || err);
+        }
+      });
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (unsubProfile) {
@@ -56,9 +90,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(firebaseUser);
 
       if (firebaseUser) {
+        // Immediate optimistic profile so UI renders in 0ms without waiting for Firestore
+        const isBootstrapAdmin = isBootstrappedAdminEmail(firebaseUser.email);
+        const optimisticProfile: UserProfile = {
+          id: firebaseUser.uid,
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || `${firebaseUser.uid}@user.kalyansetu.in`,
+          fullName: firebaseUser.displayName || 'Member',
+          avatarUrl: firebaseUser.photoURL || '',
+          phone: '',
+          role: isBootstrapAdmin ? 'admin' : 'user',
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
+        };
+        setProfile((prev) => prev || optimisticProfile);
         setLoginModalOpen(false);
+
         try {
-          const synced = await syncUserProfileInFirestore(firebaseUser, false);
+          // Fast sync with Firestore; non-blocking fallback if slow
+          const syncPromise = syncUserProfileInFirestore(firebaseUser, false);
+          const timeoutPromise = new Promise<UserProfile>((resolve) =>
+            setTimeout(() => resolve(optimisticProfile), 2500)
+          );
+          const synced = await Promise.race([syncPromise, timeoutPromise]);
           setProfile(synced);
 
           const profileRef = doc(db, 'profiles', firebaseUser.uid);
@@ -70,19 +124,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }
             },
             (error) => {
-              try {
-                handleFirestoreError(error, OperationType.GET, `profiles/${firebaseUser.uid}`);
-              } catch {
-                // Handled by structured logger
+              // Ignore offline snapshot errors gracefully
+              if (error?.message?.includes('offline')) {
+                return;
               }
+              console.warn('Profile sync snapshot notice:', error?.message || error);
             }
           );
         } catch (err) {
-          console.error('Failed to sync profile with Firestore:', err);
+          console.warn('Profile sync notice:', err);
         }
       } else {
         setProfile(null);
-        setLoginModalOpen(true);
       }
 
       setLoading(false);
@@ -98,24 +151,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthError(null);
     try {
       const credential = await signInWithPopup(auth, googleAuthProvider);
-      const synced = await syncUserProfileInFirestore(credential.user, true);
-      setProfile(synced);
+      const isBootstrapAdmin = isBootstrappedAdminEmail(credential.user.email);
+      const optimisticProfile: UserProfile = {
+        id: credential.user.uid,
+        uid: credential.user.uid,
+        email: credential.user.email || `${credential.user.uid}@user.kalyansetu.in`,
+        fullName: credential.user.displayName || 'Member',
+        avatarUrl: credential.user.photoURL || '',
+        phone: '',
+        role: isBootstrapAdmin ? 'admin' : 'user',
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+      };
+      setUser(credential.user);
+      setProfile(optimisticProfile);
       setLoginModalOpen(false);
-      return synced;
+
+      // Complete Firestore sync in background or fast await
+      try {
+        const syncPromise = syncUserProfileInFirestore(credential.user, true);
+        const timeoutPromise = new Promise<UserProfile>((resolve) =>
+          setTimeout(() => resolve(optimisticProfile), 2500)
+        );
+        const synced = await Promise.race([syncPromise, timeoutPromise]);
+        setProfile(synced);
+        return synced;
+      } catch {
+        return optimisticProfile;
+      }
     } catch (err: any) {
-      console.error('Google sign-in failed:', err);
-      setAuthError("We couldn't sign you in. Please try again.");
+      // If mobile or browser blocks popups, fallback to redirect flow seamlessly
+      if (
+        err?.code === 'auth/popup-blocked' ||
+        err?.code === 'auth/cancelled-popup-request' ||
+        err?.code === 'auth/operation-not-supported-in-this-environment'
+      ) {
+        try {
+          await signInWithRedirect(auth, googleAuthProvider);
+          return null;
+        } catch (redirectErr) {
+          console.error('Redirect sign-in fallback error:', redirectErr);
+        }
+      }
+
+      if (err?.code !== 'auth/popup-closed-by-user') {
+        console.error('Google sign-in failed:', err);
+        setAuthError("We couldn't sign you in. Please try again.");
+      }
       throw err;
     }
   };
 
   const signOutUser = async () => {
-    // Record logout event in /activity_logs while user is still authenticated
-    await recordLogoutInFirestore(auth.currentUser, profile);
-    await signOut(auth);
+    // Immediate UI feedback so button is 100% responsive
+    const currentUser = auth.currentUser;
+    const currentProfile = profile;
     setUser(null);
     setProfile(null);
-    setLoginModalOpen(true);
+    setLoginModalOpen(false);
+
+    try {
+      // Background audit log without blocking user
+      if (currentUser) {
+        recordLogoutInFirestore(currentUser, currentProfile).catch(() => {});
+      }
+      await signOut(auth);
+    } catch (err) {
+      console.warn('Firebase auth signOut notice:', err);
+    }
   };
 
   const refreshProfile = useCallback(async (): Promise<UserProfile | null> => {

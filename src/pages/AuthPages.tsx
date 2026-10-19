@@ -49,7 +49,7 @@ export function WelcomeLoginModal() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [loginModalOpen, closeLoginModal]);
 
-  if (loading || user || !loginModalOpen || isDedicatedAuthRoute) {
+  if (user || !loginModalOpen || isDedicatedAuthRoute) {
     return null;
   }
 
@@ -58,9 +58,11 @@ export function WelcomeLoginModal() {
     setSigningIn(true);
     try {
       const profile = await signInWithGoogle();
-      closeLoginModal();
-      if (profile?.role === 'admin') {
-        navigate('/admin');
+      if (profile) {
+        closeLoginModal();
+        if (profile.role === 'admin') {
+          navigate('/admin');
+        }
       }
     } catch {
       setErrorMsg("We couldn't complete Google Sign-In. Please try again.");
@@ -71,7 +73,7 @@ export function WelcomeLoginModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center p-4 sm:p-6 bg-[#111C33]/80 backdrop-blur-md overflow-y-auto"
+      className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-6 bg-[#111C33]/80 backdrop-blur-md overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="welcome-login-title"
@@ -83,7 +85,7 @@ export function WelcomeLoginModal() {
         aria-hidden="true"
       />
 
-      <div className="relative z-10 w-full max-w-[880px] bg-[#F5EFE0] border-2 border-[#C9A227] rounded-2xl shadow-luxury-lg overflow-hidden animate-modal-pop my-auto">
+      <div className="relative z-10 w-full max-w-[880px] bg-[#F5EFE0] border-2 border-[#C9A227] rounded-2xl shadow-luxury-lg overflow-hidden animate-modal-pop my-auto max-h-[94vh] overflow-y-auto">
         {/* Top Ornamental Gold Bar */}
         <div className="h-1.5 w-full bg-gradient-to-r from-[#1A2A4A] via-[#C9A227] to-[#1A2A4A]" />
 
@@ -259,7 +261,7 @@ export function WelcomeLoginModal() {
 }
 
 export function LoginPage() {
-  const { user, loading, signInWithGoogle } = useAuth();
+  const { user, profile, loading, signInWithGoogle, signOutUser } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -267,23 +269,28 @@ export function LoginPage() {
 
   const nextPath = getSafeNextPath(searchParams.get('next'), '/dashboard');
 
-  useEffect(() => {
-    if (!loading && user) {
-      navigate(nextPath, { replace: true });
-    }
-  }, [loading, user, navigate, nextPath]);
-
   const handleGoogleSignIn = async () => {
     setErrorMsg(null);
     setSigningIn(true);
     try {
-      await signInWithGoogle();
-      navigate(nextPath, { replace: true });
-    } catch {
-      setErrorMsg("We couldn't sign you in. Please try again.");
+      const syncedProfile = await signInWithGoogle();
+      if (syncedProfile?.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate(nextPath);
+      }
+    } catch (err: any) {
+      if (err?.code !== 'auth/popup-closed-by-user') {
+        setErrorMsg("We couldn't sign you in. Please try again.");
+      }
     } finally {
       setSigningIn(false);
     }
+  };
+
+  const handleSwitchAccount = async () => {
+    setErrorMsg(null);
+    await signOutUser();
   };
 
   return (
@@ -316,43 +323,103 @@ export function LoginPage() {
           </div>
         </div>
 
-        {/* Right Sign-In Action Panel */}
+        {/* Right Sign-In / Account Action Panel */}
         <div className="lg:col-span-7 p-8 sm:p-12 flex flex-col justify-center bg-[#F5EFE0]">
           <div className="mb-6">
             <KalyanSetuLogo variant="navy" size="md" />
           </div>
 
           <h1 className="font-serif-heading text-3xl sm:text-4xl font-bold text-[#1A2A4A] mb-3">
-            Welcome to KalyanSetu
+            {user ? 'Account Center' : 'Welcome to KalyanSetu'}
           </h1>
           <p className="text-[#7A6A50] text-base leading-relaxed mb-8">
-            Sign in with Google to send messages faster, manage your profile, and keep track of
-            your conversations with our founder.
+            {user
+              ? 'You are currently authenticated with your Google account.'
+              : 'Sign in with Google to send messages faster, manage your profile, and keep track of your conversations with our founder.'}
           </p>
 
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={signingIn}
-            className="w-full bg-[#1A2A4A] hover:bg-[#111C33] text-white font-bold py-4 px-6 rounded-lg border-2 border-[#C9A227] flex items-center justify-center gap-3.5 shadow-luxury transition-all hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-60 cursor-pointer"
-          >
-            <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shrink-0">
-              <GoogleGLogo className="w-4 h-4" />
-            </div>
-            <span className="text-base">
-              {signingIn ? 'Signing in…' : 'Continue with Google'}
-            </span>
-          </button>
+          {user ? (
+            /* Already signed-in view on reload: shows active user & clear options */
+            <div className="p-5 rounded-xl bg-white/70 border-2 border-[#C9A227]/50 shadow-sm space-y-4">
+              <div className="flex items-center gap-3.5">
+                {user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || 'Member'}
+                    referrerPolicy="no-referrer"
+                    className="w-12 h-12 rounded-full border-2 border-[#C9A227] object-cover"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-[#1A2A4A] text-[#E8C96A] font-bold text-lg flex items-center justify-center">
+                    {(user.displayName || user.email || 'M').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-[#1A2A4A] text-base truncate">
+                    {profile?.fullName || user.displayName || 'KalyanSetu Member'}
+                  </p>
+                  <p className="text-xs text-[#7A6A50] truncate">{user.email}</p>
+                  <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-[#1A2A4A] text-[#E8C96A] text-[10px] font-bold uppercase tracking-wider">
+                    {profile?.role === 'admin' ? 'Authorised Admin' : 'Active Member'}
+                  </span>
+                </div>
+              </div>
 
-          {errorMsg && (
-            <div
-              role="status"
-              aria-live="polite"
-              className="mt-5 p-3.5 rounded-lg bg-red-50 border border-red-300 text-red-900 text-sm flex items-center justify-center gap-2"
-            >
-              <AlertCircle className="w-4 h-4 text-red-700 shrink-0" />
-              <span>{errorMsg}</span>
+              <div className="pt-3 border-t border-[#C9A227]/30 flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate(profile?.role === 'admin' ? '/admin' : '/dashboard')}
+                  className="flex-1 bg-[#1A2A4A] hover:bg-[#111C33] text-white font-bold py-3 px-4 rounded-lg border border-[#C9A227] text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                >
+                  <span>{profile?.role === 'admin' ? 'Go to Admin Center' : 'Go to Dashboard'}</span>
+                  <ArrowRight className="w-4 h-4 text-[#E8C96A]" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSwitchAccount}
+                  className="px-4 py-3 rounded-lg bg-[#EDE4CC] hover:bg-[#e2d5b6] text-[#1A2A4A] font-bold text-xs uppercase tracking-wider border border-[#C9A227]/40 transition-colors cursor-pointer"
+                >
+                  Switch Account
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await signOutUser();
+                  }}
+                  className="px-4 py-3 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs uppercase tracking-wider border border-red-300 transition-colors cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </div>
             </div>
+          ) : (
+            /* Unauthenticated view */
+            <>
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={signingIn || loading}
+                className="w-full bg-[#1A2A4A] hover:bg-[#111C33] text-white font-bold py-4 px-6 rounded-lg border-2 border-[#C9A227] flex items-center justify-center gap-3.5 shadow-luxury transition-all hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+              >
+                <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shrink-0">
+                  <GoogleGLogo className="w-4 h-4" />
+                </div>
+                <span className="text-base">
+                  {signingIn ? 'Signing in with Google…' : 'Continue with Google'}
+                </span>
+              </button>
+
+              {errorMsg && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="mt-5 p-3.5 rounded-lg bg-red-50 border border-red-300 text-red-900 text-sm flex items-center justify-center gap-2"
+                >
+                  <AlertCircle className="w-4 h-4 text-red-700 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+            </>
           )}
 
           <div className="mt-8 pt-6 border-t border-[#C9A227]/30 flex flex-wrap items-center justify-between gap-4 text-xs text-[#7A6A50]">
@@ -398,14 +465,6 @@ export function AdminLoginPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!loading && user && profile) {
-      if (profile.role === 'admin') {
-        navigate('/admin', { replace: true });
-      }
-    }
-  }, [loading, user, profile, navigate]);
-
   const handleAdminSignIn = async () => {
     setErrorMsg(null);
     setSigningIn(true);
@@ -417,12 +476,21 @@ export function AdminLoginPage() {
         await signOutUser();
         setErrorMsg('This Google account is not authorised for admin access.');
       }
-    } catch {
-      setErrorMsg("We couldn't sign you in. Please try again.");
+    } catch (err: any) {
+      if (err?.code !== 'auth/popup-closed-by-user') {
+        setErrorMsg("We couldn't sign you in. Please try again.");
+      }
     } finally {
       setSigningIn(false);
     }
   };
+
+  const handleSwitchAccount = async () => {
+    setErrorMsg(null);
+    await signOutUser();
+  };
+
+  const isAdmin = profile?.role === 'admin';
 
   return (
     <section className="min-h-[calc(100vh-120px)] bg-navy-luxury flex items-center justify-center px-4 py-16">
@@ -443,17 +511,41 @@ export function AdminLoginPage() {
           Authorised KalyanSetu team members only.
         </p>
 
-        <button
-          type="button"
-          onClick={handleAdminSignIn}
-          disabled={signingIn}
-          className="w-full bg-[#C9A227] hover:bg-[#b38f20] text-white font-bold py-4 px-5 rounded-lg flex items-center justify-center gap-3 shadow-md transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
-        >
-          <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center shrink-0">
-            <GoogleGLogo className="w-4 h-4" />
+        {user && isAdmin ? (
+          <div className="p-4 rounded-xl bg-white/10 border border-[#C9A227] text-left mb-6 space-y-3">
+            <p className="text-xs text-[#E8C96A] font-bold uppercase tracking-wider">
+              Currently Signed In as Admin
+            </p>
+            <p className="text-white text-sm font-semibold truncate">{user.email}</p>
+            <div className="pt-2 flex flex-col gap-2">
+              <Link
+                to="/admin"
+                className="w-full bg-[#C9A227] hover:bg-[#b38f20] text-[#1A2A4A] font-bold py-2.5 px-4 rounded-lg text-center text-sm transition-colors"
+              >
+                Go to Admin Command Center →
+              </Link>
+              <button
+                type="button"
+                onClick={handleSwitchAccount}
+                className="w-full text-xs text-[#E8C96A] hover:text-white py-1 underline transition-colors cursor-pointer"
+              >
+                Sign in with a different account
+              </button>
+            </div>
           </div>
-          <span>{signingIn ? 'Verifying Credentials…' : 'Continue with Google'}</span>
-        </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleAdminSignIn}
+            disabled={signingIn || loading}
+            className="w-full bg-[#C9A227] hover:bg-[#b38f20] text-[#1A2A4A] font-bold py-4 px-5 rounded-lg flex items-center justify-center gap-3 shadow-md transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+          >
+            <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center shrink-0">
+              <GoogleGLogo className="w-4 h-4" />
+            </div>
+            <span>{signingIn ? 'Verifying Credentials…' : 'Continue with Google'}</span>
+          </button>
+        )}
 
         {errorMsg && (
           <div

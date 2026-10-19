@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { CheckCircle2, AlertCircle, Trash2, Shield } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Trash2, Shield, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { SectionLabel } from '../components/ReusableBlocks';
 import {
@@ -130,15 +130,28 @@ export function DashboardPage() {
               Hello, {firstName}
             </h1>
           </div>
-          {profile?.role === 'admin' && (
-            <Link
-              to="/admin"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#C9A227] text-white font-bold text-sm rounded-[4px] hover:bg-[#b38f20] transition-colors self-start sm:self-auto"
+          <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+            {profile?.role === 'admin' && (
+              <Link
+                to="/admin"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#C9A227] text-white font-bold text-sm rounded-[4px] hover:bg-[#b38f20] shadow-sm transition-colors cursor-pointer"
+              >
+                <Shield className="w-4 h-4" />
+                <span>Open Admin Panel</span>
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={async () => {
+                await signOutUser();
+                navigate('/');
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold text-sm rounded-[4px] border border-white/20 transition-colors cursor-pointer"
             >
-              <Shield className="w-4 h-4" />
-              <span>Open Admin Panel</span>
-            </Link>
-          )}
+              <LogOut className="w-4 h-4 text-[#E8C96A]" />
+              <span>Sign out</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -172,11 +185,12 @@ export function DashboardPage() {
               type="button"
               onClick={async () => {
                 await signOutUser();
-                navigate('/');
+                navigate('/', { replace: true });
               }}
-              className="px-6 py-2.5 border-2 border-[#1A2A4A] text-[#1A2A4A] font-bold text-sm rounded-[4px] hover:bg-[#1A2A4A] hover:text-white transition-colors whitespace-nowrap cursor-pointer"
+              className="px-6 py-2.5 border-2 border-red-700 bg-white/60 hover:bg-red-700 text-red-700 hover:text-white font-bold text-sm rounded-lg transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2 shadow-xs"
             >
-              Sign out
+              <LogOut className="w-4 h-4" />
+              <span>Sign out</span>
             </button>
           </div>
 
